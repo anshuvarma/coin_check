@@ -10,53 +10,52 @@ class NewTransactionPage extends StatefulWidget {
 class _NewTransactionPageState extends State<NewTransactionPage> {
   final TextEditingController _amountController = TextEditingController();
   bool isExpense = true;
-  String selectedCategory = 'Select';
-  String selectedSource = 'Select';
+  String selectedCategory = '';
+  String selectedSource = '';
   DateTime selectedDate = DateTime.now();
-  String selectedAccount = 'Select';
-  bool isRecurring = false;
+  String selectedAccount = '';
+  Text hintString = Text('');
 
-  final List<String> _expenseCategories = [
-    'Select',
+  final List<String> expenseCategories = [
     'Food',
-    'Groceries',
+    'Health',
     'Entertainment',
-    'Travel',
-    'Shopping'
+    'Transport',
+    'Shopping',
+    'Others'
   ];
   final List<String> _incomeSources = [
-    'Select',
     'Salary',
     'Freelance',
     'Investment',
-    'Gift',
-    'Bonus'
+    'Rental',
+    'Business',
+    'Others',
   ];
-  final List<String> _accounts = ['Select', 'Cash', 'Bank', 'UPI'];
+  final List<String> _accounts = ['Cash', 'Bank', 'UPI'];
 
   final Map<String, Color> _categoryColors = {
     'Food': Colors.redAccent,
-    'Groceries': Colors.blueAccent,
+    'Health': Colors.blueAccent,
     'Entertainment': Colors.orangeAccent,
-    'Travel': Colors.purpleAccent,
+    'Transport': Colors.purpleAccent,
     'Shopping': Colors.greenAccent,
-    'Select': Colors.grey[300]!,
+    'Others': Colors.grey,
   };
 
   final Map<String, Color> _sourceColors = {
     'Salary': Colors.redAccent,
     'Freelance': Colors.blueAccent,
     'Investment': Colors.orangeAccent,
-    'Gift': Colors.purpleAccent,
-    'Bonus': Colors.greenAccent,
-    'Select': Colors.grey[300]!,
+    'Rental': Colors.purpleAccent,
+    'Business': Colors.greenAccent,
+    'Others': Colors.grey.shade700,
   };
 
   final Map<String, Color> _accountColors = {
     'Cash': Colors.pinkAccent,
     'Bank': Colors.indigoAccent,
     'UPI': Colors.cyanAccent,
-    'Select': Colors.grey[300]!,
   };
 
   Future<void> _selectDate(BuildContext context) async {
@@ -88,19 +87,18 @@ class _NewTransactionPageState extends State<NewTransactionPage> {
     print('Type: ${isExpense ? 'Expense' : 'Income'}');
     print('Category/Source: $categoryOrSource');
     print('Account: $account');
-    if (!isExpense) print('Recurring Income: $isRecurring');
 
     _amountController.clear();
     setState(() {
-      selectedCategory = 'Select';
-      selectedSource = 'Select';
-      selectedAccount = 'Select';
-      isRecurring = false;
+      selectedCategory = '';
+      selectedSource = '';
+      selectedAccount = '';
     });
   }
 
   // Custom Dropdown Menu with Colorful Options
   Widget buildCustomDropdown({
+    required Text hintString,
     required List<String> items,
     required String value,
     required ValueChanged<String?> onChanged,
@@ -170,10 +168,12 @@ class _NewTransactionPageState extends State<NewTransactionPage> {
             ),
             SizedBox(width: 8),
             Expanded(
-              child: Text(
-                value,
-                style: TextStyle(fontSize: 16),
-              ),
+              child: value == ''
+                  ? hintString // Show the hint string if no selection is made
+                  : Text(
+                      value,
+                      style: TextStyle(fontSize: 16),
+                    ),
             ),
           ],
         ),
@@ -283,7 +283,7 @@ class _NewTransactionPageState extends State<NewTransactionPage> {
 
             // Category or Source Dropdown
             buildCustomDropdown(
-              items: isExpense ? _expenseCategories : _incomeSources,
+              items: isExpense ? expenseCategories : _incomeSources,
               value: isExpense ? selectedCategory : selectedSource,
               onChanged: (newValue) {
                 setState(() {
@@ -299,6 +299,10 @@ class _NewTransactionPageState extends State<NewTransactionPage> {
                   : _sourceColors, // Use same for now
               label: isExpense ? 'Category' : 'Source',
               icon: isExpense ? Icons.category : Icons.attach_money,
+              hintString: Text(
+                'Select',
+                style: TextStyle(color: Colors.black),
+              ),
             ),
             SizedBox(height: 16),
 
@@ -335,6 +339,10 @@ class _NewTransactionPageState extends State<NewTransactionPage> {
                 colorMap: _accountColors,
                 label: 'Account',
                 icon: Icons.account_balance_wallet,
+                hintString: Text(
+                  'Select',
+                  style: TextStyle(color: Colors.black),
+                ),
               ),
 
             Spacer(),
@@ -351,7 +359,8 @@ class _NewTransactionPageState extends State<NewTransactionPage> {
                     borderRadius: BorderRadius.circular(12),
                   ),
                 ),
-                child: Text('SAVE', style: TextStyle(fontSize: 18)),
+                child: Text('SAVE',
+                    style: TextStyle(fontSize: 18, color: Colors.black)),
               ),
             ),
           ],

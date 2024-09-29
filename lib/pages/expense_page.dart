@@ -1,25 +1,29 @@
 import 'package:flutter/material.dart';
 
-// ignore: use_key_in_widget_constructors
 class ExpensePage extends StatefulWidget {
+  const ExpensePage({super.key});
+
   @override
   State<ExpensePage> createState() => _ExpensePageState();
 }
 
 class _ExpensePageState extends State<ExpensePage> {
+  final TextEditingController _searchController = TextEditingController();
+
+  // List of transactions
   final List<Map<String, dynamic>> transactions = [
     {
       'icon': Icons.fastfood,
-      'name': 'Zomato',
-      'category': 'Food',
+      'name': 'Netmeds',
+      'category': 'Health',
       'amount': '-₹150',
       'time': '02:10 pm',
       'color': Colors.deepOrange.shade200,
     },
     {
       'icon': Icons.account_balance_wallet,
-      'name': 'GPay',
-      'category': 'Banking',
+      'name': 'Fuel',
+      'category': 'Transport',
       'amount': '-₹150',
       'time': '02:09 pm',
       'color': Colors.blue.shade100,
@@ -34,16 +38,16 @@ class _ExpensePageState extends State<ExpensePage> {
     },
     {
       'icon': Icons.fastfood,
-      'name': 'Zomato',
-      'category': 'Food',
+      'name': 'Netflix',
+      'category': 'Entertainment',
       'amount': '-₹150',
       'time': '02:07 pm',
       'color': Colors.brown.shade100,
     },
     {
       'icon': Icons.fastfood,
-      'name': 'Zomato',
-      'category': 'Food',
+      'name': 'Amazon',
+      'category': 'Shopping',
       'amount': '-₹150',
       'time': '02:07 pm',
       'color': Colors.blue.shade100,
@@ -60,22 +64,36 @@ class _ExpensePageState extends State<ExpensePage> {
 
   // List of categories for filters
   final List<String> categories = [
-    'Food & Drink',
-    'Banking',
+    'Food',
+    'Health',
+    'Entertainment',
+    'Transport',
+    'Shopping',
     'Grocery',
-    "Movie"
+    'Others'
   ];
 
   // State variable to keep track of the selected category
-  String selectedCategory = 'Food & Drink';
+  String? selectedCategory; // Initially, no category selected
+
+  // Function to filter transactions based on the selected category
+  List<Map<String, dynamic>> getFilteredTransactions() {
+    if (selectedCategory == null) {
+      // If no category is selected, return all transactions
+      return transactions;
+    } else {
+      // Return transactions that match the selected category
+      return transactions
+          .where((transaction) => transaction['category'] == selectedCategory)
+          .toList();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    // Filter transactions based on selected category
-    // ignore: unused_local_variable
-    List<Map<String, dynamic>> filteredTransactions = transactions
-        .where((transaction) => transaction['category'] == selectedCategory)
-        .toList();
+    // Filtered transactions based on the selected category
+    List<Map<String, dynamic>> filteredTransactions = getFilteredTransactions();
+
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Color.fromARGB(255, 250, 189, 241),
@@ -105,6 +123,12 @@ class _ExpensePageState extends State<ExpensePage> {
                 borderRadius: BorderRadius.circular(10),
               ),
               child: TextField(
+                controller: _searchController,
+                onChanged: (value) {
+                  setState(() {
+                    // Optionally, implement search logic here
+                  });
+                },
                 decoration: InputDecoration(
                   border: InputBorder.none,
                   hintText: 'Search for any expense',
@@ -115,7 +139,6 @@ class _ExpensePageState extends State<ExpensePage> {
             ),
             SizedBox(height: 20),
 
-            // SizedBox(height: 8),
             Text(
               'Category',
               style: TextStyle(
@@ -127,7 +150,6 @@ class _ExpensePageState extends State<ExpensePage> {
             Container(
               padding: EdgeInsets.symmetric(vertical: 10),
               decoration: BoxDecoration(
-                // color: Color.fromARGB(255, 241, 229, 245),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: SingleChildScrollView(
@@ -148,12 +170,11 @@ class _ExpensePageState extends State<ExpensePage> {
                         selected: isSelected,
                         onSelected: (bool selected) {
                           setState(() {
-                            selectedCategory = category;
+                            selectedCategory = selected ? category : null;
                           });
                         },
                         selectedColor: Colors.purple,
                         showCheckmark: false,
-                        // backgroundColor: Colors.grey.shade200,
                       ),
                     );
                   }).toList(),
@@ -163,7 +184,6 @@ class _ExpensePageState extends State<ExpensePage> {
 
             // Expenses title
             SizedBox(height: 15),
-            // Expenses title
             Text(
               'Expenses',
               style: TextStyle(
@@ -173,83 +193,84 @@ class _ExpensePageState extends State<ExpensePage> {
               ),
             ),
             SizedBox(height: 10),
+
             // Expenses list
             Expanded(
-              child: ListView.builder(
-                // gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                //   crossAxisCount: 2, // Number of columns
-                //   crossAxisSpacing: 15, // Horizontal spacing between grid items
-                //   mainAxisSpacing: 15, // Vertical spacing between grid items
-                //   childAspectRatio: 1.5, // Aspect ratio of each grid item
-                // ),
-                itemCount: transactions.length,
-                itemBuilder: (context, index) {
-                  final transaction = transactions[index];
-                  return Padding(
-                    padding: const EdgeInsets.all(8.0),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: transaction[
-                            'color'], // Use the color from the transaction data
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      padding: const EdgeInsets.all(16),
-                      child: Row(
-                        children: [
-                          CircleAvatar(
-                            backgroundColor: Colors.white,
-                            child:
-                                Icon(transaction['icon'], color: Colors.black),
-                          ),
-                          SizedBox(width: 10),
-                          Expanded(
+              child: filteredTransactions.isNotEmpty
+                  ? ListView.builder(
+                      itemCount: filteredTransactions.length,
+                      itemBuilder: (context, index) {
+                        final transaction = filteredTransactions[index];
+                        return Padding(
+                          padding: const EdgeInsets.all(8.0),
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: transaction['color'],
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            padding: const EdgeInsets.all(16),
                             child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Text(
-                                      transaction['name'],
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 14,
-                                      ),
-                                    ),
-                                    Text(
-                                      transaction['category'],
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        color: Colors.grey[700],
-                                      ),
-                                    ),
-                                    Text(
-                                      transaction['time'],
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        color: Colors.grey[700],
-                                      ),
-                                    ),
-                                    SizedBox(height: 5),
-                                  ],
+                                CircleAvatar(
+                                  backgroundColor: Colors.white,
+                                  child: Icon(transaction['icon'],
+                                      color: Colors.black),
                                 ),
-                                Text(
-                                  transaction['amount'],
-                                  style: TextStyle(
-                                    color: Colors.red,
-                                    fontWeight: FontWeight.bold,
+                                SizedBox(width: 10),
+                                Expanded(
+                                  child: Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
+                                        children: [
+                                          Text(
+                                            transaction['name'],
+                                            style: TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 14,
+                                            ),
+                                          ),
+                                          Text(
+                                            transaction['category'],
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              color: Colors.grey[700],
+                                            ),
+                                          ),
+                                          Text(
+                                            transaction['time'],
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              color: Colors.grey[700],
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      Text(
+                                        transaction['amount'],
+                                        style: TextStyle(
+                                          color: Colors.red,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ),
                               ],
                             ),
                           ),
-                        ],
-                      ),
+                        );
+                      },
+                    )
+                  : Center(
+                      child: Text(
+                          'No transactions found for the selected category'),
                     ),
-                  );
-                },
-              ),
             ),
           ],
         ),
