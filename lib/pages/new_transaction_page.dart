@@ -32,7 +32,7 @@ class _NewTransactionPageState extends State<NewTransactionPage> {
     'Business',
     'Others',
   ];
-  final List<String> _accounts = ['Cash', 'Bank', 'UPI'];
+  final List<String> _accounts = ['Cash', 'Card', 'UPI'];
 
   final Map<String, Color> _categoryColors = {
     'Food': Colors.redAccent,
@@ -54,8 +54,8 @@ class _NewTransactionPageState extends State<NewTransactionPage> {
 
   final Map<String, Color> _accountColors = {
     'Cash': Colors.pinkAccent,
-    'Bank': Colors.indigoAccent,
-    'UPI': Colors.cyanAccent,
+    'Card': Colors.indigoAccent,
+    'UPI': Colors.cyanAccent.shade700,
   };
 
   Future<void> _selectDate(BuildContext context) async {
@@ -111,13 +111,15 @@ class _NewTransactionPageState extends State<NewTransactionPage> {
         showDialog(
           context: context,
           builder: (context) => AlertDialog(
+            // contentPadding: EdgeInsets.all(20.0),
             title: Text(label),
             content: Container(
-              height: 110,
+              height: MediaQuery.of(context).size.height / 5.0,
+              // height: 150,
               width: double.maxFinite,
               child: GridView.builder(
                 gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 3,
+                  crossAxisCount: 2,
                   childAspectRatio: 2,
                   crossAxisSpacing: 8,
                   mainAxisSpacing: 8,

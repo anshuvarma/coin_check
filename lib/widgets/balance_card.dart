@@ -71,7 +71,7 @@ class BalanceCard extends StatelessWidget {
                   ),
                 ],
               ),
-              SizedBox(height: 20),
+              SizedBox(height: 30),
 
               // Income and Expense section
               Row(

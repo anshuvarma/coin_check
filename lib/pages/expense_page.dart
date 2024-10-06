@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../main.dart';
+
 class ExpensePage extends StatefulWidget {
   const ExpensePage({super.key});
 
@@ -62,7 +64,6 @@ class _ExpensePageState extends State<ExpensePage> {
     },
   ];
 
-  // List of categories for filters
   final List<String> categories = [
     'Food',
     'Health',
@@ -73,25 +74,44 @@ class _ExpensePageState extends State<ExpensePage> {
     'Others'
   ];
 
-  // State variable to keep track of the selected category
-  String? selectedCategory; // Initially, no category selected
+  String? selectedCategory;
+  String searchQuery = '';
+  int currentIndex = 1;
 
-  // Function to filter transactions based on the selected category
-  List<Map<String, dynamic>> getFilteredTransactions() {
-    if (selectedCategory == null) {
-      // If no category is selected, return all transactions
-      return transactions;
-    } else {
-      // Return transactions that match the selected category
-      return transactions
-          .where((transaction) => transaction['category'] == selectedCategory)
-          .toList();
+  void onItemTapped(int index) {
+    setState(() {
+      currentIndex = index;
+    });
+
+    if (index == 0) {
+      // Navigate to ExpensePage when "Expense" is tapped
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => MyApp()),
+      );
     }
+  }
+
+  // Function to filter transactions based on the selected category and search query
+  List<Map<String, dynamic>> getFilteredTransactions() {
+    return transactions.where((transaction) {
+      // Filter by category if selected
+      bool matchesCategory = selectedCategory == null ||
+          transaction['category'] == selectedCategory;
+      // Filter by search query (ignores case)
+      bool matchesSearch = transaction['name']
+              .toLowerCase()
+              .contains(searchQuery.toLowerCase()) ||
+          transaction['category']
+              .toLowerCase()
+              .contains(searchQuery.toLowerCase());
+
+      return matchesCategory && matchesSearch;
+    }).toList();
   }
 
   @override
   Widget build(BuildContext context) {
-    // Filtered transactions based on the selected category
     List<Map<String, dynamic>> filteredTransactions = getFilteredTransactions();
 
     return Scaffold(
@@ -126,7 +146,7 @@ class _ExpensePageState extends State<ExpensePage> {
                 controller: _searchController,
                 onChanged: (value) {
                   setState(() {
-                    // Optionally, implement search logic here
+                    searchQuery = value; // Update search query
                   });
                 },
                 decoration: InputDecoration(
@@ -269,12 +289,39 @@ class _ExpensePageState extends State<ExpensePage> {
                     )
                   : Center(
                       child: Text(
-                          'No transactions found for the selected category'),
+                          'No transactions found for the selected category or search term'),
                     ),
             ),
           ],
         ),
       ),
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: 1,
+        selectedItemColor: Colors.lightBlueAccent,
+        unselectedItemColor: Colors.grey,
+        onTap: onItemTapped,
+        items: const [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.home),
+            label: 'Home',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.money),
+            label: 'Expense',
+          ),
+        ],
+      ),
+      floatingActionButton: FloatingActionButton(
+        backgroundColor: Color.fromARGB(255, 250, 189, 241),
+        foregroundColor: Colors.black,
+        onPressed: () {
+          Navigator.pushNamed(context, '/newtransaction');
+          // Navigator.pushNamed(context, '/temp');
+        },
+        child: Icon(Icons.add),
+      ),
+      floatingActionButtonLocation:
+          FloatingActionButtonLocation.miniCenterDocked,
     );
   }
 }
