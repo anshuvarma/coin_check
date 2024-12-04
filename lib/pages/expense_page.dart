@@ -1,6 +1,12 @@
-import 'package:flutter/material.dart';
+// ignore_for_file: use_build_context_synchronously
 
-import '../main.dart';
+import 'package:flutter/material.dart';
+import 'package:temp_app/constants.dart';
+import 'package:temp_app/db_helper.dart';
+import 'package:temp_app/main.dart';
+import 'package:temp_app/pages/new_transaction_page.dart';
+import 'package:temp_app/widgets/bottom_nav_bar.dart';
+import 'package:temp_app/widgets/recent_transactions.dart';
 
 class ExpensePage extends StatefulWidget {
   const ExpensePage({super.key});
@@ -11,72 +17,13 @@ class ExpensePage extends StatefulWidget {
 
 class _ExpensePageState extends State<ExpensePage> {
   final TextEditingController _searchController = TextEditingController();
-
-  // List of transactions
-  final List<Map<String, dynamic>> transactions = [
-    {
-      'icon': Icons.fastfood,
-      'name': 'Netmeds',
-      'category': 'Health',
-      'amount': '-₹150',
-      'time': '02:10 pm',
-      'color': Colors.deepOrange.shade200,
-    },
-    {
-      'icon': Icons.account_balance_wallet,
-      'name': 'Fuel',
-      'category': 'Transport',
-      'amount': '-₹150',
-      'time': '02:09 pm',
-      'color': Colors.blue.shade100,
-    },
-    {
-      'icon': Icons.shopping_cart,
-      'name': 'D-mart',
-      'category': 'Grocery',
-      'amount': '-₹150',
-      'time': '02:08 pm',
-      'color': Colors.teal.shade100,
-    },
-    {
-      'icon': Icons.fastfood,
-      'name': 'Netflix',
-      'category': 'Entertainment',
-      'amount': '-₹150',
-      'time': '02:07 pm',
-      'color': Colors.brown.shade100,
-    },
-    {
-      'icon': Icons.fastfood,
-      'name': 'Amazon',
-      'category': 'Shopping',
-      'amount': '-₹150',
-      'time': '02:07 pm',
-      'color': Colors.blue.shade100,
-    },
-    {
-      'icon': Icons.fastfood,
-      'name': 'Zomato',
-      'category': 'Food',
-      'amount': '-₹150',
-      'time': '02:07 pm',
-      'color': Colors.deepOrange.shade200,
-    },
-  ];
-
-  final List<String> categories = [
-    'Food',
-    'Health',
-    'Entertainment',
-    'Transport',
-    'Shopping',
-    'Grocery',
-    'Others'
-  ];
+  final GlobalKey<RecentTransactionsState> recentTransactionsKey =
+      GlobalKey<RecentTransactionsState>();
 
   String? selectedCategory;
   String searchQuery = '';
   int currentIndex = 1;
+  List<Map<String, dynamic>> newTransactions = [];
 
   void onItemTapped(int index) {
     setState(() {
@@ -84,29 +31,51 @@ class _ExpensePageState extends State<ExpensePage> {
     });
 
     if (index == 0) {
-      // Navigate to ExpensePage when "Expense" is tapped
-      Navigator.push(
+      Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (context) => MyApp()),
       );
     }
   }
 
-  // Function to filter transactions based on the selected category and search query
+  final dbHelper = DBHelper();
+
+  @override
+  void initState() {
+    super.initState();
+    _loadTransactions();
+  }
+
+  Future<void> _loadTransactions() async {
+    final data = await dbHelper.fetchTransactions();
+    setState(() {
+      newTransactions = data.reversed.toList();
+    });
+  }
+
+  void refreshTransactions() {
+    recentTransactionsKey.currentState?.refreshTransactionList();
+    _loadTransactions();
+  }
+
+  Future<void> _deleteTransaction(int id) async {
+    await dbHelper.deleteTransaction(id);
+    refreshTransactions();
+    deleteDialog(context);
+  }
+
   List<Map<String, dynamic>> getFilteredTransactions() {
-    return transactions.where((transaction) {
-      // Filter by category if selected
+    return newTransactions.where((transaction) {
+      bool isExpense = transaction['name'] == 'Expense';
       bool matchesCategory = selectedCategory == null ||
           transaction['category'] == selectedCategory;
-      // Filter by search query (ignores case)
       bool matchesSearch = transaction['name']
               .toLowerCase()
               .contains(searchQuery.toLowerCase()) ||
           transaction['category']
               .toLowerCase()
               .contains(searchQuery.toLowerCase());
-
-      return matchesCategory && matchesSearch;
+      return isExpense && matchesCategory && matchesSearch;
     }).toList();
   }
 
@@ -135,7 +104,7 @@ class _ExpensePageState extends State<ExpensePage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Search bar
+            // Search Bar
             Container(
               padding: EdgeInsets.symmetric(horizontal: 12),
               decoration: BoxDecoration(
@@ -146,7 +115,7 @@ class _ExpensePageState extends State<ExpensePage> {
                 controller: _searchController,
                 onChanged: (value) {
                   setState(() {
-                    searchQuery = value; // Update search query
+                    searchQuery = value;
                   });
                 },
                 decoration: InputDecoration(
@@ -158,24 +127,20 @@ class _ExpensePageState extends State<ExpensePage> {
               ),
             ),
             SizedBox(height: 20),
-
-            Text(
-              'Category',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Colors.black,
-              ),
-            ),
+            // Category Filter
+            Text('Category',
+                style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black)),
             Container(
               padding: EdgeInsets.symmetric(vertical: 10),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(10),
-              ),
+              decoration:
+                  BoxDecoration(borderRadius: BorderRadius.circular(10)),
               child: SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
                 child: Row(
-                  children: categories.map((category) {
+                  children: expenseCategories.map((category) {
                     bool isSelected = selectedCategory == category;
                     return Padding(
                       padding: const EdgeInsets.fromLTRB(8.0, 0.0, 8.0, 0.0),
@@ -183,9 +148,9 @@ class _ExpensePageState extends State<ExpensePage> {
                         label: Text(
                           category,
                           style: TextStyle(
-                            color: isSelected ? Colors.white : Colors.grey[700],
-                            fontWeight: FontWeight.bold,
-                          ),
+                              color:
+                                  isSelected ? Colors.white : Colors.grey[700],
+                              fontWeight: FontWeight.bold),
                         ),
                         selected: isSelected,
                         onSelected: (bool selected) {
@@ -201,122 +166,105 @@ class _ExpensePageState extends State<ExpensePage> {
                 ),
               ),
             ),
-
-            // Expenses title
             SizedBox(height: 15),
             Text(
-              'Expenses',
+              'All Expenses',
               style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Colors.black,
-              ),
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black),
             ),
             SizedBox(height: 10),
 
-            // Expenses list
+            // Transaction List
             Expanded(
-              child: filteredTransactions.isNotEmpty
-                  ? ListView.builder(
-                      itemCount: filteredTransactions.length,
-                      itemBuilder: (context, index) {
-                        final transaction = filteredTransactions[index];
-                        return Padding(
-                          padding: const EdgeInsets.all(8.0),
-                          child: Container(
-                            decoration: BoxDecoration(
-                              color: transaction['color'],
-                              borderRadius: BorderRadius.circular(12),
+                child: newTransactions.isNotEmpty
+                    ? ListView.builder(
+                        itemCount: filteredTransactions.length,
+                        itemBuilder: (context, index) {
+                          final transaction = filteredTransactions[index];
+                          final category = transaction['category'];
+                          final color = categoryColors[category] ?? Colors.cyan;
+
+                          return Dismissible(
+                            key: ValueKey(transaction['id']),
+                            direction: DismissDirection.endToStart,
+                            background: Container(
+                              alignment: Alignment.centerRight,
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 20),
+                              color: Colors.red,
+                              child:
+                                  const Icon(Icons.delete, color: Colors.white),
                             ),
-                            padding: const EdgeInsets.all(16),
-                            child: Row(
-                              children: [
-                                CircleAvatar(
-                                  backgroundColor: Colors.white,
-                                  child: Icon(transaction['icon'],
-                                      color: Colors.black),
-                                ),
-                                SizedBox(width: 10),
-                                Expanded(
-                                  child: Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.center,
-                                        children: [
-                                          Text(
-                                            transaction['name'],
-                                            style: TextStyle(
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 14,
-                                            ),
-                                          ),
-                                          Text(
-                                            transaction['category'],
-                                            style: TextStyle(
-                                              fontSize: 12,
-                                              color: Colors.grey[700],
-                                            ),
-                                          ),
-                                          Text(
-                                            transaction['time'],
-                                            style: TextStyle(
-                                              fontSize: 12,
-                                              color: Colors.grey[700],
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                      Text(
-                                        transaction['amount'],
-                                        style: TextStyle(
-                                          color: Colors.red,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                    ],
+                            confirmDismiss: (direction) => showDialog(
+                              context: context,
+                              builder: (context) => AlertDialog(
+                                title: Text("Delete Transaction"),
+                                content: Text(
+                                    "Are you sure you want to delete this transaction?"),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () =>
+                                        Navigator.of(context).pop(false),
+                                    child: Text("Cancel"),
                                   ),
-                                ),
-                              ],
+                                  TextButton(
+                                    onPressed: () =>
+                                        Navigator.of(context).pop(true),
+                                    child: Text("Delete"),
+                                  ),
+                                ],
+                              ),
                             ),
-                          ),
-                        );
-                      },
-                    )
-                  : Center(
-                      child: Text(
-                          'No transactions found for the selected category or search term'),
-                    ),
-            ),
+                            onDismissed: (direction) {
+                              _deleteTransaction(transaction['id']);
+                            },
+                            child: Card(
+                              color: color.withOpacity(0.6),
+                              child: ListTile(
+                                leading: Icon(Icons.account_balance_wallet,
+                                    color: Colors.black),
+                                title: Text(transaction['category'],
+                                    style:
+                                        TextStyle(fontWeight: FontWeight.bold)),
+                                subtitle: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(transaction['date']),
+                                  ],
+                                ),
+                                trailing: Text(
+                                  transaction['amount'].toString(),
+                                  style: TextStyle(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white),
+                                ),
+                              ),
+                            ),
+                          );
+                        },
+                      )
+                    : Center(child: Text('No transactions yet!'))),
           ],
         ),
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: 1,
-        selectedItemColor: Colors.lightBlueAccent,
-        unselectedItemColor: Colors.grey,
-        onTap: onItemTapped,
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home),
-            label: 'Home',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.money),
-            label: 'Expense',
-          ),
-        ],
-      ),
+      bottomNavigationBar:
+          BottomNavBar(currentIndex: currentIndex, onItemTapped: onItemTapped),
       floatingActionButton: FloatingActionButton(
         backgroundColor: Color.fromARGB(255, 250, 189, 241),
         foregroundColor: Colors.black,
-        onPressed: () {
-          Navigator.pushNamed(context, '/newtransaction');
-          // Navigator.pushNamed(context, '/temp');
+        onPressed: () async {
+          final result = await Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => NewTransactionPage(
+                onUpdate: refreshTransactions,
+              ),
+            ),
+          );
+          if (result == true) refreshTransactions();
         },
         child: Icon(Icons.add),
       ),

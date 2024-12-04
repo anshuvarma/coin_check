@@ -1,127 +1,164 @@
-// ignore_for_file: use_key_in_widget_constructors, prefer_const_constructors
+// ignore_for_file: annotate_overrides
 
 import 'package:flutter/material.dart';
+import '../db_helper.dart';
+import '../constants.dart';
 
-class RecentTransactions extends StatelessWidget {
-  final List<Map<String, dynamic>> transactions = [
-    {
-      'icon': Icons.fastfood,
-      'name': 'Zomato',
-      'category': 'Food',
-      'amount': '-₹150',
-      'time': '02:10 pm',
-      'color': Colors.deepOrange.shade200,
-    },
-    {
-      'icon': Icons.account_balance_wallet,
-      'name': 'GPay',
-      'category': 'Banking',
-      'amount': '-₹150',
-      'time': '02:09 pm',
-      'color': Colors.blue.shade100,
-    },
-    {
-      'icon': Icons.shopping_cart,
-      'name': 'D-mart',
-      'category': 'Grocery',
-      'amount': '-₹150',
-      'time': '02:08 pm',
-      'color': Colors.teal.shade100,
-    },
-    // {
-    //   'icon': Icons.fastfood,
-    //   'name': 'Zomato',
-    //   'category': 'Food',
-    //   'amount': '-₹150',
-    //   'time': '02:07 pm',
-    //   'color': Colors.brown.shade100,
-    // },
-    // {
-    //   'icon': Icons.fastfood,
-    //   'name': 'Zomato',
-    //   'category': 'Food',
-    //   'amount': '-₹150',
-    //   'time': '02:07 pm',
-    //   'color': Colors.blue.shade100,
-    // },
-    // {
-    //   'icon': Icons.fastfood,
-    //   'name': 'Zomato',
-    //   'category': 'Food',
-    //   'amount': '-₹150',
-    //   'time': '02:07 pm',
-    //   'color': Colors.deepOrange.shade200,
-    // },
-  ];
+class RecentTransactions extends StatefulWidget {
+  final VoidCallback onTransactionDeleted;
+
+  const RecentTransactions({super.key, required this.onTransactionDeleted});
+
+  @override
+  RecentTransactionsState createState() => RecentTransactionsState();
+}
+
+class RecentTransactionsState extends State<RecentTransactions> {
+  late Future<List<Map<String, dynamic>>> transactionsFuture;
+  final dbHelper = DBHelper();
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _loadTransactions(); // Reload transactions when dependencies change
+  }
+
+  void initState() {
+    super.initState();
+    transactionsFuture = dbHelper.fetchTransactions();
+  }
+
+  Future<void> _loadTransactions() async {
+    setState(() {
+      transactionsFuture = dbHelper.fetchTransactions().then(
+            (transaction) => transaction.reversed.toList(),
+          );
+    });
+  }
+
+  Future<void> _deleteTransaction(int id) async {
+    await dbHelper.deleteTransaction(id);
+    await _loadTransactions();
+    widget.onTransactionDeleted();
+  }
+
+  void refreshTransactionList() {
+    _loadTransactions();
+  }
+
+  Future<bool?> _confirmDeletion() async {
+    return await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text("Delete Transaction"),
+          content:
+              const Text("Are you sure you want to delete this transaction?"),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text("Cancel"),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text("Delete"),
+            ),
+          ],
+        );
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     return Expanded(
-      child: ListView.builder(
-        // gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        //   crossAxisCount: 2, // Number of columns
-        //   crossAxisSpacing: 15, // Horizontal spacing between grid items
-        //   mainAxisSpacing: 15, // Vertical spacing between grid items
-        //   childAspectRatio: 1.5, // Aspect ratio of each grid item
-        // ),
-        itemCount: transactions.length,
-        itemBuilder: (context, index) {
-          final transaction = transactions[index];
-          return Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Container(
-              decoration: BoxDecoration(
-                color: transaction[
-                    'color'], // Use the color from the transaction data
-                borderRadius: BorderRadius.circular(12),
-              ),
-              padding: const EdgeInsets.all(16),
-              child: Row(
-                children: [
-                  CircleAvatar(
-                    backgroundColor: Colors.white,
-                    child: Icon(transaction['icon'], color: Colors.black),
+      child: FutureBuilder<List<Map<String, dynamic>>>(
+        future: transactionsFuture,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          } else if (snapshot.hasData && snapshot.data!.isNotEmpty) {
+            // Get only the 5 most recent transactions
+            final transactions = snapshot.data!.take(5).toList();
+            return ListView.builder(
+              itemCount: transactions.length,
+              itemBuilder: (context, index) {
+                final transaction = transactions[index];
+                final category = transaction['category'];
+                final cardColor = categoryColors[category] ?? Colors.cyan;
+                return Dismissible(
+                  key: ValueKey(transaction['id']),
+                  direction: DismissDirection.endToStart,
+                  background: Container(
+                    alignment: Alignment.centerRight,
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    color: Colors.red,
+                    child: const Icon(Icons.delete, color: Colors.white),
                   ),
-                  SizedBox(width: 10),
-                  Expanded(
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(
-                              transaction['name'],
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 14,
-                              ),
-                            ),
-                            Text(
-                              transaction['category'],
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Colors.grey[700],
-                              ),
-                            ),
-                            SizedBox(height: 5),
-                          ],
-                        ),
-                        Text(
-                          transaction['amount'],
-                          style: TextStyle(
-                            color: Colors.red,
-                            fontWeight: FontWeight.bold,
+                  confirmDismiss: (direction) => _confirmDeletion(),
+                  onDismissed: (direction) {
+                    _deleteTransaction(transaction['id']);
+                    deleteDialog(context);
+                  },
+                  child: Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: cardColor.withOpacity(0.6),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      padding: const EdgeInsets.all(16),
+                      child: Row(
+                        children: [
+                          CircleAvatar(
+                            backgroundColor: Colors.white,
+                            child: Icon(Icons.account_balance_wallet,
+                                color: Colors.black),
                           ),
-                        ),
-                      ],
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(
+                                  transaction['category'],
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 15,
+                                  ),
+                                ),
+                                Text(
+                                  transaction['date'],
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    color: Colors.grey.shade800,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Text(
+                            transaction['amount'].toString(),
+                            style: const TextStyle(
+                              fontSize: 15,
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                ],
-              ),
-            ),
-          );
+                );
+              },
+            );
+          } else if (snapshot.hasData && snapshot.data!.isEmpty) {
+            return const Center(child: Text('No transactions yet!'));
+          } else {
+            return Center(child: Text('Error: ${snapshot.error}'));
+          }
         },
       ),
     );

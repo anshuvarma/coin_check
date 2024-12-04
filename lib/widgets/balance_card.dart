@@ -1,141 +1,152 @@
-// ignore_for_file: use_key_in_widget_constructors, prefer_const_constructors
+// ignore_for_file: prefer_const_constructors
 
 import 'package:flutter/material.dart';
 
 class BalanceCard extends StatelessWidget {
+  const BalanceCard({super.key});
+
   @override
   Widget build(BuildContext context) {
+    double screenWidth = MediaQuery.of(context).size.width;
+    double screenHeight = MediaQuery.of(context).size.height;
+
     return Padding(
-      padding: const EdgeInsets.all(5.0),
-      child: Card(
-        color: Color.fromARGB(255, 241, 229, 245),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
-        elevation: 4,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(
-                'Balance',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-              SizedBox(height: 15),
-              // Semicircular progress indicator
-              Stack(
-                alignment: Alignment.center,
-                children: [
-                  // Background arc
-                  SizedBox(
-                    height: 180,
-                    width: 180,
-                    child: CircularProgressIndicator(
-                      value: 0.65, // This represents 65%
-                      strokeWidth: 10,
-                      backgroundColor: Colors.grey[300],
-                      valueColor: AlwaysStoppedAnimation<Color>(
-                        Colors.lightBlueAccent,
+      padding: EdgeInsets.all(screenWidth * 0.02),
+      child: Container(
+        height: screenHeight * 0.5, // Adjust height relative to screen height
+        child: Card(
+          color: const Color.fromARGB(255, 241, 229, 245),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          elevation: 4,
+          child: Padding(
+            padding: EdgeInsets.symmetric(
+                vertical: screenWidth * 0.05, horizontal: screenWidth * 0.04),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  'Balance',
+                  style: TextStyle(
+                      fontSize: screenWidth * 0.05,
+                      fontWeight: FontWeight.bold),
+                ),
+                // SizedBox(height: screenWidth * 0.04),
+                Flexible(
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      SizedBox(
+                        height: screenWidth * 0.45, // Reduced size
+                        width: screenWidth * 0.45,
+                        child: CircularProgressIndicator(
+                          value: 0.65,
+                          strokeWidth: 9.0,
+                          backgroundColor: Colors.grey[300],
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                              Colors.lightBlueAccent),
+                          semanticsLabel: 'Balance Progress',
+                        ),
                       ),
-                      // Setting the progress indicator to be a half circle
-                      semanticsLabel: 'Balance Progress',
-                    ),
-                  ),
-                  // Center content
-                  Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: const [
-                      Text(
-                        '65%',
-                        style: TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.blue),
-                      ),
-                      SizedBox(height: 5),
-                      Text(
-                        'You have spent',
-                        style: TextStyle(fontSize: 14, color: Colors.grey),
-                      ),
-                      Text(
-                        '₹40000',
-                        style: TextStyle(
-                            fontSize: 28, fontWeight: FontWeight.bold),
-                      ),
-                      Text(
-                        'of ₹70000',
-                        style: TextStyle(fontSize: 14, color: Colors.grey),
+                      Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            '65%',
+                            style: TextStyle(
+                                fontSize: 22,
+                                // fontSize: screenWidth * 0.06,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.blue),
+                          ),
+                          SizedBox(height: screenWidth * 0.01),
+                          Text('Amount spent',
+                              style: TextStyle(
+                                  fontSize: 15,
+                                  // fontSize: screenWidth * 0.035,
+                                  color: Colors.black)),
+                          SizedBox(height: screenWidth * 0.01),
+                          Text('₹40000',
+                              style: TextStyle(
+                                  fontSize: 25,
+                                  // fontSize: screenWidth * 0.07,
+                                  fontWeight: FontWeight.bold)),
+                          SizedBox(height: screenWidth * 0.01),
+                          Text('of ₹70000',
+                              style: TextStyle(
+                                  fontSize: 15,
+                                  // fontSize: screenWidth * 0.035,
+                                  color: Colors.black)),
+                        ],
                       ),
                     ],
                   ),
-                ],
-              ),
-              SizedBox(height: 30),
-
-              // Income and Expense section
-              Row(
-                children: [
-                  Expanded(
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: Colors.green.shade100,
-                        borderRadius: BorderRadius.all(
-                          Radius.circular(20.0),
+                ),
+                SizedBox(height: screenWidth * 0.05),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Container(
+                        height: screenWidth * 0.250,
+                        decoration: BoxDecoration(
+                          color: Colors.green.shade100,
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        padding:
+                            EdgeInsets.symmetric(vertical: screenWidth * 0.03),
+                        child: Column(
+                          children: [
+                            // SizedBox(height: screenWidth * 0.02),
+                            Icon(
+                              Icons.arrow_upward_outlined,
+                              color: Colors.green,
+                            ),
+                            Text('Income',
+                                style: TextStyle(
+                                    fontSize: screenWidth * 0.035,
+                                    color: Colors.grey.shade700)),
+                            Text('₹5500',
+                                style: TextStyle(
+                                    fontSize: screenWidth * 0.04,
+                                    fontWeight: FontWeight.bold)),
+                          ],
                         ),
                       ),
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      child: Column(
-                        children: [
-                          Icon(Icons.arrow_upward, color: Colors.blue),
-                          SizedBox(height: 5),
-                          Text(
-                            'Income',
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: Colors.grey.shade700,
+                    ),
+                    SizedBox(width: screenWidth * 0.02),
+                    Expanded(
+                      child: Container(
+                        height: screenWidth * 0.250,
+                        decoration: BoxDecoration(
+                          color: Colors.red.shade200,
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        padding:
+                            EdgeInsets.symmetric(vertical: screenWidth * 0.03),
+                        child: Column(
+                          children: [
+                            // SizedBox(height: screenWidth * 0.02),
+                            Icon(
+                              Icons.arrow_downward_outlined,
+                              color: Colors.redAccent,
                             ),
-                          ),
-                          Text(
-                            '₹4500',
-                            style: TextStyle(
-                                fontSize: 16, fontWeight: FontWeight.bold),
-                          ),
-                        ],
+                            Text('Expense',
+                                style: TextStyle(
+                                    fontSize: screenWidth * 0.035,
+                                    color: Colors.grey.shade700)),
+                            Text('₹500',
+                                style: TextStyle(
+                                    fontSize: screenWidth * 0.04,
+                                    fontWeight: FontWeight.bold)),
+                          ],
+                        ),
                       ),
                     ),
-                  ),
-                  SizedBox(width: 10.0),
-                  Expanded(
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: Colors.red.shade200,
-                        borderRadius: BorderRadius.all(Radius.circular(20.0)),
-                      ),
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      child: Column(
-                        children: [
-                          Icon(Icons.arrow_downward, color: Colors.blue),
-                          SizedBox(height: 5),
-                          Text(
-                            'Expense',
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: Colors.grey.shade700,
-                            ),
-                          ),
-                          Text(
-                            '₹500',
-                            style: TextStyle(
-                                fontSize: 16, fontWeight: FontWeight.bold),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ],
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       ),

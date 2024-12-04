@@ -1,7 +1,12 @@
+// ignore_for_file: use_build_context_synchronously, unnecessary_null_comparison
+
 import 'package:flutter/material.dart';
+import '../db_helper.dart';
+import '../constants.dart';
 
 class NewTransactionPage extends StatefulWidget {
-  const NewTransactionPage({super.key});
+  final VoidCallback onUpdate;
+  const NewTransactionPage({super.key, required this.onUpdate});
 
   @override
   _NewTransactionPageState createState() => _NewTransactionPageState();
@@ -14,49 +19,13 @@ class _NewTransactionPageState extends State<NewTransactionPage> {
   String selectedSource = '';
   DateTime selectedDate = DateTime.now();
   String selectedAccount = '';
-  Text hintString = Text('');
 
-  final List<String> expenseCategories = [
-    'Food',
-    'Health',
-    'Entertainment',
-    'Transport',
-    'Shopping',
-    'Others'
-  ];
-  final List<String> _incomeSources = [
-    'Salary',
-    'Freelance',
-    'Investment',
-    'Rental',
-    'Business',
-    'Others',
-  ];
-  final List<String> _accounts = ['Cash', 'Card', 'UPI'];
-
-  final Map<String, Color> _categoryColors = {
-    'Food': Colors.redAccent,
-    'Health': Colors.blueAccent,
-    'Entertainment': Colors.orangeAccent,
-    'Transport': Colors.purpleAccent,
-    'Shopping': Colors.greenAccent,
-    'Others': Colors.grey,
-  };
-
-  final Map<String, Color> _sourceColors = {
-    'Salary': Colors.redAccent,
-    'Freelance': Colors.blueAccent,
-    'Investment': Colors.orangeAccent,
-    'Rental': Colors.purpleAccent,
-    'Business': Colors.greenAccent,
-    'Others': Colors.grey.shade700,
-  };
-
-  final Map<String, Color> _accountColors = {
-    'Cash': Colors.pinkAccent,
-    'Card': Colors.indigoAccent,
-    'UPI': Colors.cyanAccent.shade700,
-  };
+  bool get isFormValid {
+    return _amountController.text.isNotEmpty &&
+        (isExpense ? selectedCategory.isNotEmpty : selectedSource.isNotEmpty) &&
+        selectedDate != null &&
+        (isExpense ? selectedAccount.isNotEmpty : true);
+  }
 
   Future<void> _selectDate(BuildContext context) async {
     final DateTime? pickedDate = await showDatePicker(
@@ -72,33 +41,43 @@ class _NewTransactionPageState extends State<NewTransactionPage> {
     }
   }
 
-  void _saveTransaction() {
-    if (_amountController.text.isEmpty) {
+  // Save transaction into the database
+  Future<void> _saveTransaction() async {
+    if (!isFormValid) {
       return;
     }
+    final type = isExpense ? 'Expense' : 'Income';
     final amount = _amountController.text;
     final date =
         '${selectedDate.day}/${selectedDate.month}/${selectedDate.year}';
     final account = isExpense ? selectedAccount : 'N/A';
     final categoryOrSource = isExpense ? selectedCategory : selectedSource;
 
-    print('Amount: $amount');
-    print('Date: $date');
-    print('Type: ${isExpense ? 'Expense' : 'Income'}');
-    print('Category/Source: $categoryOrSource');
-    print('Account: $account');
+    final dbHelper = DBHelper();
+    await dbHelper.insertTransaction({
+      'name': type,
+      'category': categoryOrSource,
+      'amount': amount,
+      'date': date,
+      'isExpense': isExpense ? 1 : 0,
+    });
 
+
+    // Clear fields after saving
     _amountController.clear();
     setState(() {
       selectedCategory = '';
       selectedSource = '';
       selectedAccount = '';
     });
+
+    // Pass a result back to the previous page
+    widget.onUpdate();
+    Navigator.pop(context, true);
   }
 
   // Custom Dropdown Menu with Colorful Options
   Widget buildCustomDropdown({
-    required Text hintString,
     required List<String> items,
     required String value,
     required ValueChanged<String?> onChanged,
@@ -111,11 +90,9 @@ class _NewTransactionPageState extends State<NewTransactionPage> {
         showDialog(
           context: context,
           builder: (context) => AlertDialog(
-            // contentPadding: EdgeInsets.all(20.0),
             title: Text(label),
             content: Container(
               height: MediaQuery.of(context).size.height / 5.0,
-              // height: 150,
               width: double.maxFinite,
               child: GridView.builder(
                 gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
@@ -157,7 +134,7 @@ class _NewTransactionPageState extends State<NewTransactionPage> {
         );
       },
       child: Container(
-        padding: EdgeInsets.symmetric(vertical: 16), // Added padding
+        padding: EdgeInsets.symmetric(vertical: 16),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(12),
           border: Border.all(color: Colors.black54),
@@ -171,11 +148,8 @@ class _NewTransactionPageState extends State<NewTransactionPage> {
             SizedBox(width: 8),
             Expanded(
               child: value == ''
-                  ? hintString // Show the hint string if no selection is made
-                  : Text(
-                      value,
-                      style: TextStyle(fontSize: 16),
-                    ),
+                  ? Text('Select', style: TextStyle(color: Colors.black))
+                  : Text(value, style: TextStyle(fontSize: 16)),
             ),
           ],
         ),
@@ -185,6 +159,9 @@ class _NewTransactionPageState extends State<NewTransactionPage> {
 
   @override
   Widget build(BuildContext context) {
+    // Check if keyboard is open
+    final keyboardOpen = MediaQuery.of(context).viewInsets.bottom > 0;
+
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Color.fromARGB(255, 250, 189, 241),
@@ -201,172 +178,182 @@ class _NewTransactionPageState extends State<NewTransactionPage> {
         ),
         centerTitle: true,
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Toggle between Expense and Income
-            Row(
-              children: [
-                Expanded(
-                  child: GestureDetector(
-                    onTap: () {
+      body: Column(
+        children: [
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Toggle between Expense and Income
+                  Row(
+                    children: [
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: () {
+                            setState(() {
+                              isExpense = true;
+                            });
+                          },
+                          child: Container(
+                            padding: EdgeInsets.symmetric(vertical: 16),
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(12),
+                              color: isExpense
+                                  ? Colors.redAccent
+                                  : Colors.grey[200],
+                            ),
+                            child: Column(
+                              children: [
+                                Icon(Icons.remove_circle_outline,
+                                    color: isExpense
+                                        ? Colors.white
+                                        : Colors.black),
+                                SizedBox(height: 8),
+                                Text('Expense',
+                                    style: TextStyle(
+                                        color: isExpense
+                                            ? Colors.white
+                                            : Colors.black)),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                      SizedBox(width: 16),
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: () {
+                            setState(() {
+                              isExpense = false;
+                            });
+                          },
+                          child: Container(
+                            padding: EdgeInsets.symmetric(vertical: 16),
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(12),
+                              color: isExpense
+                                  ? Colors.grey[200]
+                                  : Colors.greenAccent,
+                            ),
+                            child: Column(
+                              children: [
+                                Icon(Icons.add_circle_outline,
+                                    color: isExpense
+                                        ? Colors.black
+                                        : Colors.white),
+                                SizedBox(height: 8),
+                                Text('Income',
+                                    style: TextStyle(
+                                        color: isExpense
+                                            ? Colors.black
+                                            : Colors.white)),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 24),
+
+                  // Amount Input Field
+                  TextField(
+                    controller: _amountController,
+                    keyboardType: TextInputType.number,
+                    style: const TextStyle(
+                        fontSize: 36, fontWeight: FontWeight.bold),
+                    textAlign: TextAlign.center,
+                    decoration: InputDecoration(
+                      hintText: '0.00',
+                      border: InputBorder.none,
+                      hintStyle:
+                          TextStyle(color: Colors.grey[400], fontSize: 36),
+                    ),
+                    onChanged: (_) => setState(() {}), // Trigger validations
+                  ),
+                  SizedBox(height: 24),
+
+                  // Category or Source Dropdown
+                  buildCustomDropdown(
+                    items: isExpense ? expenseCategories : incomeSources,
+                    value: isExpense ? selectedCategory : selectedSource,
+                    onChanged: (newValue) {
                       setState(() {
-                        isExpense = true;
+                        if (isExpense) {
+                          selectedCategory = newValue!;
+                        } else {
+                          selectedSource = newValue!;
+                        }
                       });
                     },
-                    child: Container(
-                      padding: EdgeInsets.symmetric(vertical: 16),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(12),
-                        color: isExpense ? Colors.redAccent : Colors.grey[200],
+                    colorMap: isExpense ? categoryColors : sourceColors,
+                    label: isExpense ? 'Category' : 'Source',
+                    icon: isExpense ? Icons.category : Icons.attach_money,
+                  ),
+                  SizedBox(height: 16),
+
+                  // Date Picker
+                  GestureDetector(
+                    onTap: () {
+                      _selectDate(context);
+                    },
+                    child: InputDecorator(
+                      decoration: InputDecoration(
+                        labelText: 'Date',
+                        prefixIcon: Icon(Icons.calendar_today),
+                        border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12)),
                       ),
-                      child: Column(
-                        children: [
-                          Icon(Icons.remove_circle_outline,
-                              color: isExpense ? Colors.white : Colors.black),
-                          SizedBox(height: 8),
-                          Text('Expense',
-                              style: TextStyle(
-                                  color:
-                                      isExpense ? Colors.white : Colors.black)),
-                        ],
+                      child: Text(
+                        '${selectedDate.day}/${selectedDate.month}/${selectedDate.year}',
+                        style: TextStyle(fontSize: 16),
                       ),
                     ),
                   ),
-                ),
-                SizedBox(width: 16),
-                Expanded(
-                  child: GestureDetector(
-                    onTap: () {
-                      setState(() {
-                        isExpense = false;
-                      });
-                    },
-                    child: Container(
-                      padding: EdgeInsets.symmetric(vertical: 16),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(12),
-                        color:
-                            isExpense ? Colors.grey[200] : Colors.greenAccent,
-                      ),
-                      child: Column(
-                        children: [
-                          Icon(Icons.add_circle_outline,
-                              color: isExpense ? Colors.black : Colors.white),
-                          SizedBox(height: 8),
-                          Text('Income',
-                              style: TextStyle(
-                                  color:
-                                      isExpense ? Colors.black : Colors.white)),
-                        ],
-                      ),
+                  SizedBox(height: 16),
+
+                  // Account Dropdown for Expense
+                  if (isExpense)
+                    buildCustomDropdown(
+                      items: accounts,
+                      value: selectedAccount,
+                      onChanged: (newValue) {
+                        setState(() {
+                          selectedAccount = newValue!;
+                        });
+                      },
+                      colorMap: accountColors,
+                      label: 'Account',
+                      icon: Icons.account_balance_wallet,
+                    ),
+
+                  SizedBox(height: 24),
+                ],
+              ),
+            ),
+          ),
+          // Conditional visibility of Save button based on keyboard state
+          if (!keyboardOpen)
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: isFormValid ? _saveTransaction : null,
+                  style: ElevatedButton.styleFrom(
+                    padding: EdgeInsets.symmetric(vertical: 16),
+                    backgroundColor: Color.fromARGB(255, 250, 189, 241),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                ),
-              ],
-            ),
-            SizedBox(height: 24),
-
-            // Amount Input Field
-            TextField(
-              controller: _amountController,
-              keyboardType: TextInputType.number,
-              style: const TextStyle(fontSize: 36, fontWeight: FontWeight.bold),
-              textAlign: TextAlign.center,
-              decoration: InputDecoration(
-                hintText: '0.00',
-                border: InputBorder.none,
-                hintStyle: TextStyle(color: Colors.grey[400], fontSize: 36),
-              ),
-            ),
-            SizedBox(height: 24),
-
-            // Category or Source Dropdown
-            buildCustomDropdown(
-              items: isExpense ? expenseCategories : _incomeSources,
-              value: isExpense ? selectedCategory : selectedSource,
-              onChanged: (newValue) {
-                setState(() {
-                  if (isExpense) {
-                    selectedCategory = newValue!;
-                  } else {
-                    selectedSource = newValue!;
-                  }
-                });
-              },
-              colorMap: isExpense
-                  ? _categoryColors
-                  : _sourceColors, // Use same for now
-              label: isExpense ? 'Category' : 'Source',
-              icon: isExpense ? Icons.category : Icons.attach_money,
-              hintString: Text(
-                'Select',
-                style: TextStyle(color: Colors.black),
-              ),
-            ),
-            SizedBox(height: 16),
-
-            // Date Picker
-            GestureDetector(
-              onTap: () {
-                _selectDate(context);
-              },
-              child: InputDecorator(
-                decoration: InputDecoration(
-                  labelText: 'Date',
-                  prefixIcon: Icon(Icons.calendar_today),
-                  border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12)),
-                ),
-                child: Text(
-                  '${selectedDate.day}/${selectedDate.month}/${selectedDate.year}',
-                  style: TextStyle(fontSize: 16),
+                  child: Text('Save', style: TextStyle(fontSize: 18)),
                 ),
               ),
             ),
-            SizedBox(height: 16),
-
-            // Account Dropdown for Expense
-            if (isExpense)
-              buildCustomDropdown(
-                items: _accounts,
-                value: selectedAccount,
-                onChanged: (newValue) {
-                  setState(() {
-                    selectedAccount = newValue!;
-                  });
-                },
-                colorMap: _accountColors,
-                label: 'Account',
-                icon: Icons.account_balance_wallet,
-                hintString: Text(
-                  'Select',
-                  style: TextStyle(color: Colors.black),
-                ),
-              ),
-
-            Spacer(),
-
-            // Save Button
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: _saveTransaction,
-                style: ElevatedButton.styleFrom(
-                  padding: EdgeInsets.symmetric(vertical: 16),
-                  backgroundColor: Color.fromARGB(255, 250, 189, 241),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                child: Text('SAVE',
-                    style: TextStyle(fontSize: 18, color: Colors.black)),
-              ),
-            ),
-          ],
-        ),
+        ],
       ),
     );
   }
