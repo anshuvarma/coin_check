@@ -32,7 +32,7 @@ class _NewTransactionPageState extends State<NewTransactionPage> {
       context: context,
       initialDate: selectedDate,
       firstDate: DateTime(2000),
-      lastDate: DateTime(2101),
+      lastDate: DateTime.now(),
     );
     if (pickedDate != null && pickedDate != selectedDate) {
       setState(() {
@@ -61,7 +61,6 @@ class _NewTransactionPageState extends State<NewTransactionPage> {
       'date': date,
       'isExpense': isExpense ? 1 : 0,
     });
-
 
     // Clear fields after saving
     _amountController.clear();
